@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Activity Monitor</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --accent-color: #3b82f6;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+        }
+
+        header {
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            margin: 0;
+        }
+
+        .status-badge {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            background: #dcfce7;
+            color: #166534;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-weight: 600;
+        }
+
+        #events-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .event-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .event-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-color);
+        }
+
+        .event-text {
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+
+        .highlight {
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 640px) {
+            body { padding: 20px 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Repository Activity</h1>
+            <div class="status-badge">Live Updates (15s)</div>
+        </header>
+        
+        <div id="events-list">
+            </div>
+    </div>
+
+    <script>
+        async function fetchEvents() {
+            try {
+                const response = await fetch('/api/events');
+                const events = await response.json();
+                const list = document.getElementById('events-list');
+                
+                if (events.length === 0) {
+                    list.innerHTML = '<p style="text-align:center; color:#94a3b8;">No actions detected yet. Push something to the repo!</p>';
+                    return;
+                }
+
+                list.innerHTML = '';
+                events.forEach(event => {
+                    let content = "";
+                    const ts = event.timestamp;
+
+                    // Strictly following the assessment formatting requirements [cite: 8, 11, 14]
+                    if (event.action === "PUSH") {
+                        content = `<span class="highlight">"${event.author}"</span> pushed to <span class="highlight">"${event.to_branch}"</span> on ${ts}`;
+                    } else if (event.action === "PULL_REQUEST") {
+                        content = `<span class="highlight">"${event.author}"</span> submitted a pull request from <span class="highlight">"${event.from_branch}"</span> to <span class="highlight">"${event.to_branch}"</span> on ${ts}`;
+                    } else if (event.action === "MERGE") {
+                        content = `<span class="highlight">"${event.author}"</span> merged branch <span class="highlight">"${event.from_branch}"</span> to <span class="highlight">"${event.to_branch}"</span> on ${ts}`;
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = 'event-card';
+                    card.innerHTML = `<div class="event-text">${content}</div>`;
+                    list.appendChild(card);
+                });
+            } catch (err) {
+                console.error("Error fetching data:", err);
+            }
+        }
+
+        setInterval(fetchEvents, 15000); // Poll every 15 seconds [cite: 6]
+        fetchEvents();
+    </script>
+</body>
+</html>
